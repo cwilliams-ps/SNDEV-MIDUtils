@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_442237_midutils.MIDUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <name>MIDUtils</name>
+        <script><![CDATA[var MIDUtils = Class.create();
+MIDUtils.prototype = {
+    initialize: function() {},
+
+    sync: function() {
+        var command = "ls";
+
+        var midServer = "dev";
+
+        var gr = new GlideRecord('ecc_queue');
+        gr.initialize();
+        gr.name = command;
+        gr.topic = "Command";
+        gr.agent = "mid.server." + midServer;
+        gr.source = "MIDUtils";
+        gr.queue = "output";
+        var eccId = gr.insert();
+
+        var eccResponse = new GlideRecord('ecc_queue');
+        eccResponse.addQuery("response_to", eccId);
+        eccResponse.addQuery("queue", "input");
+        eccResponse.query();
+
+        while (!eccResponse.next()) {
+            eccResponse.query();
+            gs.sleep(250);
+        }
+
+        var xmlString = eccResponse.payload;
+
+        if (xmlString == '<see_attachment/>') {
+            // We need to get the xml string from the attachment...
+            var gr = new GlideRecord('sys_attachment');
+            gr.addQuery('table_name', 'ecc_queue');
+            gr.addQuery('table_sys_id', eccResponse.sys_id);
+            gr.query();
+
+            while (gr.next()) {
+                var ga = new GlideSysAttachment();
+                xmlString = ga.getContent(gr); // getContent method only works in scoped applications
+                //xmlBytes = ga.getBytes(gr);
+                //xmlString = String(Packages.java.lang.String(xmlBytes)); 
+            }
+        }
+
+        // Parse payload
+        var xmlDoc = new XMLDocument2();
+        xmlDoc.parseXML(xmlString);
+
+        return xmlDoc.getNodeText('/results/result/stdout');
+    },
+
+    type: 'MIDUtils'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admchris</sys_created_by>
+        <sys_created_on>2024-05-03 13:00:29</sys_created_on>
+        <sys_id>528aefbb83b9ce90520bc755eeaad368</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>MIDUtils</sys_name>
+        <sys_package display_value="MIDUtils" source="x_442237_midutils">9a7ae7bb83b9ce90520bc755eeaad3a9</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="MIDUtils">9a7ae7bb83b9ce90520bc755eeaad3a9</sys_scope>
+        <sys_update_name>sys_script_include_528aefbb83b9ce90520bc755eeaad368</sys_update_name>
+        <sys_updated_by>admchris</sys_updated_by>
+        <sys_updated_on>2024-05-03 13:00:29</sys_updated_on>
+    </sys_script_include>
+</record_update>
